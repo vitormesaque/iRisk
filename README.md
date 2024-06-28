@@ -43,7 +43,7 @@ iRisk is a scalable microservice designed to classify issue risks based on crowd
 - Docker
 - OLLAMA
 
-###Ollama
+### Ollama
 ```bash
 docker run -d -v ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama
 
@@ -72,7 +72,7 @@ sudo systemctl restart docker
  docker run -d --gpus=all -v ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama
 ```
 
-### Installation
+###Installation
 
 1. Clone the repository:
     ```bash
@@ -116,13 +116,13 @@ ollama run irisk
 }
 ```
 
-###Contributing
+## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-###License
+## License
 
-This project is licensed under the MIT License. See the LICENSE file for details.
+This project is licensed under the MIT License. See the LICENSE for details.
 
 
 
