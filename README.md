@@ -80,7 +80,7 @@ sudo systemctl restart docker
 To run the iRisk microservice, execute the following command:
 ```bash
 ollama run irisk
-
+```
 
 ### Example Output
 
