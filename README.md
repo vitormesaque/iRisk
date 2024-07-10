@@ -4,6 +4,9 @@
 
 Analyzing mobile app reviews is essential for identifying trends and issue patterns that affect user experience and app reputation in app stores. A risk matrix offers a straightforward, intuitive method to prioritize software maintenance actions to mitigate negative ratings. However, manually constructing a risk matrix is time-consuming, and stakeholders need help understanding the context of risks due to varied descriptions and the volume of reviews. Therefore, machine learning-based methods are needed to extract risks and classify their priority effectively. While existing studies have automated risk matrix generation in software development, they have not explored app reviews or utilized Large Language Models (LLMs) in a scalable architecture. To address this gap, we present iRisk (scalable microservice for classifying issue Risks), a tool for generating a risk matrix based on crowdsourced app reviews using Large Language Models, specifically the LLaMA 3 (Large Language Model Meta AI). Our contributions include fine-tuning the recent LLaMA 3 to enable accurate and automated review analysis. The tool, offered as a microservice, helps manage app issues and risks, providing an automated dashboard and visualizations for decision-making, monitoring, and risk mitigation. The tool is available on Github, and a presentation about the tool can be found in this [video](https://www.youtube.com/watch?v=-NnoMxrvejk).
 
+## Online Demo
+- [iRisk](https://irisk-live.mappidea.com)
+
 ## Index Terms
 - Opinion Mining
 - Large Language Model
@@ -11,19 +14,6 @@ Analyzing mobile app reviews is essential for identifying trends and issue patte
 - Risk Matrix
 - Issue Prioritization
 
-## Authors
-
-- **Vitor Mesaque Alves de Lima**  
-  Três Lagoas Campus (CPTL) Federal University of Mato Grosso do Sul (UFMS), Três Lagoas, Brazil  
-  [vitor.lima@ufms.br](mailto:vitor.lima@ufms.br)
-
-- **Jacson Rodrigues Barbosa**  
-  Institute of Informatics (INF) Federal University of Goiás (UFG), Goiânia, Brazil  
-  [jacson@inf.ufg.br](mailto:jacson@inf.ufg.br)
-
-- **Ricardo Marcodes Marcacini**  
-  Institute of Mathematics and Computer Sciences (ICMC) University of São Paulo (USP), São Carlos, Brazil  
-  [ricardo.marcacini@usp.br](mailto:ricardo.marcacini@usp.br)
 
 ## Introduction
 
@@ -72,7 +62,7 @@ sudo systemctl restart docker
  docker run -d --gpus=all -v ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama
 ```
 
-###Installation
+### Installation
 
 1. Clone the repository:
     ```bash
@@ -287,6 +277,19 @@ _ = model.generate(**inputs, streamer = text_streamer, max_new_tokens = 512)
 
 For detailed steps and configurations, please refer to the official documentation of Unsloth and the Hugging Face transformers library.
 
+## Authors
+
+- **Vitor Mesaque Alves de Lima**  
+  Três Lagoas Campus (CPTL) Federal University of Mato Grosso do Sul (UFMS), Três Lagoas, Brazil  
+  [vitor.lima@ufms.br](mailto:vitor.lima@ufms.br)
+
+- **Jacson Rodrigues Barbosa**  
+  Institute of Informatics (INF) Federal University of Goiás (UFG), Goiânia, Brazil  
+  [jacson@inf.ufg.br](mailto:jacson@inf.ufg.br)
+
+- **Ricardo Marcodes Marcacini**  
+  Institute of Mathematics and Computer Sciences (ICMC) University of São Paulo (USP), São Carlos, Brazil  
+  [ricardo.marcacini@usp.br](mailto:ricardo.marcacini@usp.br)
 
 
 ## Contributing
