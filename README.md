@@ -116,6 +116,179 @@ ollama run irisk
 }
 ```
 
+
+# Fine-Tuning iRisk using Unsloth with LLAMA3 and LoRA Adapter
+
+This section describes the process of fine-tuning the iRisk tool using Unsloth with LLAMA3 and LoRA Adapter, leveraging a dataset of app reviews with identified and prioritized issues.
+
+## What is LoRA Adapter?
+
+LoRA (Low-Rank Adaptation) is a technique used to efficiently fine-tune large language models. Instead of updating all parameters of a model during fine-tuning, LoRA inserts low-rank matrices into each layer of the transformer architecture. This approach significantly reduces the computational cost and memory requirements, making fine-tuning more accessible and faster while maintaining high performance.
+
+## What is Unsloth?
+
+Unsloth is a fine-tuning framework designed for scaling the adaptation of large language models. It integrates with modern machine learning pipelines to enable seamless and efficient training. Unsloth supports various adapters, including LoRA, to optimize and enhance the performance of models like LLAMA3 for specific tasks, such as issue detection and prioritization from user reviews.
+
+## Fine-Tuning with Unsloth and LoRA Adapter
+
+The following steps outline how to fine-tune iRisk using the dataset of app reviews and identified issues, utilizing Unsloth with LLAMA3 and LoRA Adapter:
+
+### 1. Prepare the Dataset
+
+Ensure your dataset is in JSON format, with examples from domains such as 'Music & Audio', 'Entertainment', 'Communication', 'Shopping', 'Social Media', and 'Travel & Local' apps. The dataset should include reviews with and without issues, and the output should be in JSON format for each identified issue.
+
+### 2. Set Up the Environment
+
+Install the necessary dependencies:
+
+```bash
+pip install "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git"
+pip install --no-deps xformers "trl<0.9.0" peft accelerate bitsandbytes
+pip install datasets
+```
+
+### 3. Load and Fine-Tune the Model
+
+#### Load the Model
+
+```python
+from unsloth import FastLanguageModel
+import torch
+
+max_seq_length = 2048 # Choose any! We auto support RoPE Scaling internally!
+dtype = None # None for auto detection. Float16 for Tesla T4, V100, Bfloat16 for Ampere+
+load_in_4bit = True # Use 4bit quantization to reduce memory usage. Can be False.
+
+model, tokenizer = FastLanguageModel.from_pretrained(
+    model_name = "unsloth/llama-3-8b-bnb-4bit",
+    max_seq_length = max_seq_length,
+    dtype = dtype,
+    load_in_4bit = load_in_4bit,
+)
+```
+
+#### Load the Dataset
+
+```python
+from datasets import load_dataset
+dataset = load_dataset("vitormesaque/irisk", split = "train")
+```
+
+#### Apply LoRA Adapter
+
+```python
+model = FastLanguageModel.get_peft_model(
+    model,
+    r = 16, # Choose any number > 0 ! Suggested 8, 16, 32, 64, 128
+    target_modules = ["q_proj", "k_proj", "v_proj", "o_proj",
+                      "gate_proj", "up_proj", "down_proj"],
+    lora_alpha = 16,
+    lora_dropout = 0, # Supports any, but = 0 is optimized
+    bias = "none",    # Supports any, but = "none" is optimized
+    use_gradient_checkpointing = "unsloth", # True or "unsloth" for very long context
+    random_state = 3407,
+    use_rslora = False,  # We support rank stabilized LoRA
+    loftq_config = None, # And LoftQ
+)
+```
+
+### 4. Data Preparation
+
+Format the dataset with appropriate prompts:
+
+```python
+irisk_prompt = """Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.
+
+### Instruction:
+{}
+
+### Input:
+{}
+
+### Response:
+{}"""
+
+EOS_TOKEN = tokenizer.eos_token # Must add EOS_TOKEN
+def formatting_prompts_func(examples):
+    instructions = examples["instruction"]
+    inputs       = examples["input"]
+    outputs      = examples["output"]
+    texts = []
+    for instruction, input, output in zip(instructions, inputs, outputs):
+        text = irisk_prompt.format(instruction, input, output) + EOS_TOKEN
+        texts.append(text)
+    return { "text" : texts, }
+
+dataset = load_dataset("vitormesaque/irisk", split = "train")
+dataset = dataset.map(formatting_prompts_func, batched = True)
+```
+
+### 5. Train the Model
+
+Set up the trainer and start training:
+
+```python
+from trl import SFTTrainer
+from transformers import TrainingArguments
+from unsloth import is_bfloat16_supported
+
+trainer = SFTTrainer(
+    model = model,
+    tokenizer = tokenizer,
+    train_dataset = dataset,
+    dataset_text_field = "text",
+    max_seq_length = max_seq_length,
+    dataset_num_proc = 2,
+    packing = False, # Can make training 5x faster for short sequences.
+    args = TrainingArguments(
+        per_device_train_batch_size = 2,
+        gradient_accumulation_steps = 4,
+        warmup_steps = 5,
+        max_steps = 60,
+        learning_rate = 2e-4,
+        fp16 = not is_bfloat16_supported(),
+        bf16 = is_bfloat16_supported(),
+        logging_steps = 1,
+        optim = "adamw_8bit",
+        weight_decay = 0.01,
+        lr_scheduler_type = "linear",
+        seed = 3407,
+        output_dir = "outputs",
+    ),
+)
+
+trainer_stats = trainer.train()
+```
+
+### 6. Inference
+
+Generate responses using the fine-tuned model:
+
+```python
+FastLanguageModel.for_inference(model) # Enable native 2x faster inference
+inputs = tokenizer(
+[
+    irisk_prompt.format(
+        "Extract issues from the user review in JSON format. For each issue, provide functionality, severity (1-5), likelihood (1-5), category (Bug, User Experience, Performance, Security, Compatibility, Functionality, UI, Connectivity, Localization, Accessibility, Data Handling, Privacy, Notifications, Account Management, Payment, Content Quality, Support, Updates, Syncing, Customization), and the sentence.",
+        "I used to love this app, but now it's become frustrating as hell. We can't see lyrics, we can't CHOOSE WHAT SONG WE WANT TO LISTEN TO, we can't skip a song more than a few times, there are ads after every two songs, and all in all it's a horrible overrated app. If I could give this 0 stars, I would.",
+        "", # output - leave this blank for generation!
+    )
+], return_tensors = "pt").to("cuda")
+
+from transformers import TextStreamer
+text_streamer = TextStreamer(tokenizer)
+_ = model.generate(**inputs, streamer = text_streamer, max_new_tokens = 512)
+```
+
+## Resources
+
+- [LoRA Adapter on Hugging Face](https://huggingface.co/vitormesaque/lora_model)
+- [Unsloth Documentation](https://github.com/Unsloth/unsloth)
+
+For detailed steps and configurations, please refer to the official documentation of Unsloth and the Hugging Face transformers library.
+
+
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
