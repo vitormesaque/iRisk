@@ -107,7 +107,7 @@ ollama run irisk
 ```
 
 
-# Fine-Tuning iRisk using Unsloth with LLAMA3 and LoRA Adapter
+# i-LLAMA: Fine-Tuning iRisk using Unsloth with LLAMA3 and LoRA Adapter
 
 This section describes the process of fine-tuning the iRisk tool using Unsloth with LLAMA3 and LoRA Adapter, leveraging a dataset of app reviews with identified and prioritized issues.
 
@@ -259,7 +259,7 @@ FastLanguageModel.for_inference(model) # Enable native 2x faster inference
 inputs = tokenizer(
 [
     irisk_prompt.format(
-        "Extract issues from the user review in JSON format. For each issue, provide functionality, severity (1-5), likelihood (1-5), category (Bug, User Experience, Performance, Security, Compatibility, Functionality, UI, Connectivity, Localization, Accessibility, Data Handling, Privacy, Notifications, Account Management, Payment, Content Quality, Support, Updates, Syncing, Customization), and the sentence.",
+        "Extract issues from the user review in JSON format. For each issue, provide: label functionality, severity (1-5), likelihood (1-5), category (Bug, User Experience, Performance, Security, Compatibility, Functionality, UI, Connectivity, Localization, Accessibility, Data Handling, Privacy, Notifications, Account Management, Payment, Content Quality, Support, Updates, Syncing, Customization), and the sentence.",
         "I used to love this app, but now it's become frustrating as hell. We can't see lyrics, we can't CHOOSE WHAT SONG WE WANT TO LISTEN TO, we can't skip a song more than a few times, there are ads after every two songs, and all in all it's a horrible overrated app. If I could give this 0 stars, I would.",
         "", # output - leave this blank for generation!
     )
@@ -270,8 +270,120 @@ text_streamer = TextStreamer(tokenizer)
 _ = model.generate(**inputs, streamer = text_streamer, max_new_tokens = 512)
 ```
 
-## Resources
 
+# i-LLAMA Client
+
+This is a Python package to extract issues from user reviews using an API.
+
+## Installation
+
+You can install the package using pip:
+
+```bash
+pip install git+https://github.com/vitormesaque/illama_client.git
+```
+
+
+## Usage
+
+
+### 1. Define the review text
+
+Create a string variable to hold the review text.
+
+```python
+review = """It's slow to load and crashes often. The GPS is also inaccurate, showing the driver at the wrong location."""
+```
+
+### 2. Import necessary modules
+
+Import the required functions and libraries.
+
+```python
+from illama_client.issue_extractor import extract_issues
+import json
+import pandas as pd
+```
+
+### 3. Extract issues from the review
+
+Use the `extract_issues` function to extract issues from the review. Replace `'api'` and `'model'` with your appropriate values.
+
+```python
+# Replace 'api' and 'model' with your actual values
+issues = extract_issues(review, api, model)
+```
+
+### 4. Convert the extracted issues to a DataFrame
+
+Parse the JSON response and normalize it into a pandas DataFrame.
+
+```python
+# Convert the JSON response to a pandas DataFrame
+json_data = json.loads(issues)
+df = pd.json_normalize(json_data, 'issues')
+```
+
+### 5. Display the DataFrame
+
+Print the DataFrame to see the extracted issues in a tabular format.
+
+```python
+# Display the DataFrame
+print(df)
+```
+
+### Example Output
+
+The above code will extract the mentioned issues in the review and format them into a pandas DataFrame. Here's an example of the JSON output and the resulting DataFrame:
+
+#### JSON Output
+
+```json
+{
+  "review": "It's slow to load and crashes often. The GPS is also inaccurate, showing the driver at the wrong location.",
+  "issues": [
+    {
+      "label": "Slow Loading",
+      "functionality": "App Speed",
+      "severity": 3,
+      "likelihood": 5,
+      "category": "Performance",
+      "sentence": "It's slow to load."
+    },
+    {
+      "label": "Crashes",
+      "functionality": "App Stability",
+      "severity": 4,
+      "likelihood": 5,
+      "category": "Bug",
+      "sentence": "The app crashes often."
+    },
+    {
+      "label": "GPS Inaccuracy",
+      "functionality": "Navigation Accuracy",
+      "severity": 3,
+      "likelihood": 4,
+      "category": "Functionality",
+      "sentence": "The GPS is also inaccurate."
+    }
+  ]
+}
+```
+
+#### DataFrame Output
+
+```plaintext
+           label       functionality  severity  likelihood     category                sentence
+0   Slow Loading           App Speed         3           5  Performance         It's slow to load.
+1        Crashes        App Stability         4           5          Bug       The app crashes often.
+2  GPS Inaccuracy  Navigation Accuracy         3           4  Functionality  The GPS is also inaccurate.
+```
+
+
+
+## Resources
+- [i-LLAMA Client](https://github.com/vitormesaque/illama-client)
 - [LoRA Adapter on Hugging Face](https://huggingface.co/vitormesaque/lora_model)
 - [Unsloth Documentation](https://github.com/Unsloth/unsloth)
 
