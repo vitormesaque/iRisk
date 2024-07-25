@@ -66,7 +66,7 @@ sudo systemctl restart docker
 
 1. Clone the repository:
     ```bash
-    git clone https://github.com/yourusername/irisk.git
+    git clone https://github.com/vitormesaque/irisk.git
     cd irisk
     ```
 
@@ -80,30 +80,6 @@ sudo systemctl restart docker
 To run the iRisk microservice, execute the following command:
 ```bash
 ollama run irisk
-```
-
-### Example Output
-
-```bash
-{
-    "issue": [
-        "App frequently crashes when booking a ride.",
-        "Estimated arrival time calculation is rarely accurate.",
-        "App can't find available drivers in some areas."
-    ],
-    "feature": [
-        "App stability",
-        "Driver arrival time",
-        "Driver allocation"
-    ],
-    "sentence": [
-        "The app frequently crashes when I'm trying to book a ride, causing me to miss important trips.",
-        "Additionally, the estimated arrival time calculation is rarely accurate, which is frustrating when I'm in a hurry.",
-        "Another problem I've encountered is that in some parts of the city, the app simply can't find any available drivers, even though I see several cars from the service on the street."
-    ],
-    "severity": [4, 3, 2],
-    "likelihood": [4, 3, 3]
-}
 ```
 
 
